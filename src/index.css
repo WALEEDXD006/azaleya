@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #FBF8F4;
+  color: #4E3B27;
+}
+
+.font-serif {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-cream-700 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-cream-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-cream-300 bg-white px-6 py-3 text-sm font-medium text-cream-800 transition-all hover:bg-cream-50 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-cream-700 transition-all hover:bg-cream-100;
+  }
+  .input-field {
+    @apply w-full rounded-xl border border-cream-200 bg-white px-4 py-3 text-sm text-cream-900 placeholder:text-cream-400 focus:border-cream-500 focus:outline-none focus:ring-2 focus:ring-cream-200;
+  }
+  .card {
+    @apply rounded-2xl border border-cream-100 bg-white shadow-sm;
+  }
+}
+
+/* Smooth fade-in for route transitions */
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hide scrollbar for horizontal scrollers */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
