@@ -54,7 +54,7 @@ export type Order = {
 export type Profile = {
   id: string;
   email: string;
-  role: 'customer' | 'admin';
+  role: 'user' | 'admin';
   full_name: string | null;
   phone: string | null;
   created_at: string;

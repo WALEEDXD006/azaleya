@@ -13,4 +13,21 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split Firebase into its own chunk
+          firebase: [
+            'firebase/app',
+            'firebase/auth',
+            'firebase/firestore',
+            'firebase/storage',
+          ],
+          // Split React & ReactDOM into their own chunk
+          react: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
 });

@@ -8,7 +8,8 @@ import { ShopPage } from '@/pages/ShopPage';
 import { ProductDetailPage } from '@/pages/ProductDetailPage';
 import { CartPage } from '@/pages/CartPage';
 import { CheckoutPage } from '@/pages/CheckoutPage';
-import { AuthPage } from '@/pages/AuthPage';
+import { SignInPage } from '@/pages/SignInPage';
+import { SignUpPage } from '@/pages/SignUpPage';
 import { AccountPage } from '@/pages/AccountPage';
 import { AboutPage } from '@/pages/AboutPage';
 import { AdminPage } from '@/pages/AdminPage';
@@ -29,8 +30,11 @@ function Routes() {
       return <CartPage />;
     case '/checkout':
       return <CheckoutPage />;
-    case '/auth':
-      return <AuthPage />;
+    case '/signin':
+    case '/auth':         // backward compat
+      return <SignInPage />;
+    case '/signup':
+      return <SignUpPage />;
     case '/account':
       return <AccountPage />;
     case '/about':

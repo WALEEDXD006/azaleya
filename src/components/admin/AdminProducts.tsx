@@ -185,6 +185,11 @@ function ProductForm({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const uploadImage = async (file: File) => {
+    if (file.size > 700 * 1024) {
+      setError('Image is too large. Please select an image under 700KB.');
+      return;
+    }
+
     setUploading(true);
     setError(null);
     try {

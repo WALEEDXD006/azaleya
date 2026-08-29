@@ -6,22 +6,25 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import type { Profile } from '@/lib/types';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export type UserRole = 'user' | 'admin';
 
 export type User = {
   id: string;
   email: string;
   full_name: string | null;
   phone: string | null;
-  role: 'customer' | 'admin';
+  role: UserRole;
   created_at: string;
 };
 
 type AuthContextValue = {
   user: User | null;
-  profile: Profile | null;
+  profile: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
@@ -29,49 +32,122 @@ type AuthContextValue = {
   refreshProfile: () => Promise<void>;
 };
 
+// ─── Admin Seed ──────────────────────────────────────────────────────────────
+
+const ADMIN_EMAIL = 'officialazaleya@gmail.com';
+const ADMIN_PASSWORD = 'Azaleya@12345';
+
+/**
+ * On app boot: check the `roles` collection for an existing admin entry.
+ * If none exists, create the Firebase Auth account and seed both
+ * the `profiles` and `roles` documents.
+ */
+async function seedAdminIfNeeded() {
+  try {
+    // Check if admin role entry already exists
+    const rolesSnap = await getDocs(
+      query(collection(db, 'roles'), where('role', '==', 'admin'))
+    );
+    if (!rolesSnap.empty) return; // Admin already exists — nothing to do
+
+    // Create the Firebase Auth account
+    const cred = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
+    const uid = cred.user.uid;
+    const now = new Date().toISOString();
+
+    // Create profile document
+    await setDoc(doc(db, 'profiles', uid), {
+      id: uid,
+      email: ADMIN_EMAIL,
+      full_name: 'Azaleya Admin',
+      phone: null,
+      role: 'admin',
+      created_at: now,
+    });
+
+    // Create roles document
+    await setDoc(doc(db, 'roles', uid), {
+      user_id: uid,
+      email: ADMIN_EMAIL,
+      role: 'admin',
+      created_at: now,
+    });
+
+    // Sign back out so the app starts in a logged-out state
+    await firebaseSignOut(auth);
+    console.log('✅ Admin account seeded successfully');
+  } catch (err: any) {
+    // auth/email-already-in-use means admin auth exists but roles doc was missing — patch it
+    if (err.code === 'auth/email-already-in-use') {
+      console.log('Admin auth account already exists.');
+    } else {
+      console.error('Admin seed error:', err);
+    }
+  }
+}
+
+// ─── Context ─────────────────────────────────────────────────────────────────
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Seed admin on first load
+  useEffect(() => {
+    seedAdminIfNeeded();
+  }, []);
+
+  /**
+   * Fetch user profile from `profiles` collection.
+   * Role is always read from the `roles` collection (source of truth).
+   */
   const fetchProfile = async (fbUser: FirebaseUser): Promise<User> => {
     try {
-      const ref = doc(db, 'profiles', fbUser.uid);
-      const snap = await getDoc(ref);
+      const profileRef = doc(db, 'profiles', fbUser.uid);
+      const profileSnap = await getDoc(profileRef);
 
-      if (snap.exists()) {
-        const data = snap.data();
+      // Determine role from `roles` collection
+      const roleRef = doc(db, 'roles', fbUser.uid);
+      const roleSnap = await getDoc(roleRef);
+      const role: UserRole = roleSnap.exists() ? (roleSnap.data().role as UserRole) : 'user';
+
+      if (profileSnap.exists()) {
+        const data = profileSnap.data();
+        // Keep profile role in sync with roles collection
+        if (data.role !== role) {
+          await setDoc(profileRef, { ...data, role }, { merge: true });
+        }
         return {
           id: fbUser.uid,
           email: fbUser.email || '',
           full_name: data.full_name || null,
           phone: data.phone || null,
-          role: data.role || 'customer',
+          role,
           created_at: data.created_at || new Date().toISOString(),
         };
       } else {
-        // Create default profile if missing
-        const isAdmin = fbUser.email === import.meta.env.VITE_ADMIN_EMAIL;
-        const newProfile = {
+        // New user — create profile with role from roles collection (or default 'user')
+        const newProfile: User = {
           id: fbUser.uid,
           email: fbUser.email || '',
           full_name: fbUser.displayName || null,
           phone: null,
-          role: isAdmin ? 'admin' : 'customer',
+          role,
           created_at: new Date().toISOString(),
         };
-        await setDoc(ref, newProfile);
-        return newProfile as User;
+        await setDoc(profileRef, newProfile);
+        return newProfile;
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);
       return {
         id: fbUser.uid,
         email: fbUser.email || '',
-        full_name: fbUser.displayName || null,
+        full_name: null,
         phone: null,
-        role: 'customer',
+        role: 'user',
         created_at: new Date().toISOString(),
       };
     }
@@ -87,7 +163,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -96,9 +171,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signInWithEmailAndPassword(auth, email, password);
       return { error: null };
     } catch (err: any) {
-      console.error('Firebase signin error:', err);
       let msg = 'Failed to sign in. Please check your credentials.';
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      if (
+        err.code === 'auth/user-not-found' ||
+        err.code === 'auth/wrong-password' ||
+        err.code === 'auth/invalid-credential'
+      ) {
         msg = 'Invalid email or password.';
       } else if (err.code === 'auth/invalid-email') {
         msg = 'Please enter a valid email address.';
@@ -110,20 +188,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      const isAdmin = email === import.meta.env.VITE_ADMIN_EMAIL;
-      const profileData = {
-        id: cred.user.uid,
-        email: cred.user.email,
+      const uid = cred.user.uid;
+      const now = new Date().toISOString();
+
+      // All new sign-ups are 'user' role
+      const profileData: User = {
+        id: uid,
+        email: cred.user.email || email,
         full_name: fullName,
         phone: null,
-        role: isAdmin ? 'admin' : 'customer',
-        created_at: new Date().toISOString(),
+        role: 'user',
+        created_at: now,
       };
-      await setDoc(doc(db, 'profiles', cred.user.uid), profileData);
-      setUser(profileData as User);
+
+      await setDoc(doc(db, 'profiles', uid), profileData);
+
+      // Create role entry in `roles` collection
+      await setDoc(doc(db, 'roles', uid), {
+        user_id: uid,
+        email: cred.user.email || email,
+        role: 'user',
+        created_at: now,
+      });
+
+      setUser(profileData);
       return { error: null };
     } catch (err: any) {
-      console.error('Firebase signup error:', err);
       let msg = 'Failed to create account.';
       if (err.code === 'auth/email-already-in-use') {
         msg = 'An account with this email already exists.';
@@ -147,9 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, profile: user, loading, signIn, signUp, signOut, refreshProfile }}
-    >
+    <AuthContext.Provider value={{ user, profile: user, loading, signIn, signUp, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

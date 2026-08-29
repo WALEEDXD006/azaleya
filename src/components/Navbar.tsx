@@ -83,7 +83,7 @@ export function Navbar() {
             </div>
           ) : (
             <button
-              onClick={() => go('/auth')}
+              onClick={() => go('/signin')}
               className="rounded-full p-2 text-cream-700 hover:bg-cream-100"
               aria-label="Sign in"
             >

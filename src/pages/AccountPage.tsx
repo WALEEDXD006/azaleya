@@ -15,7 +15,7 @@ export function AccountPage() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/auth');
+      navigate('/signin');
       return;
     }
 
