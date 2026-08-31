@@ -4,6 +4,8 @@ import {
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -30,6 +32,7 @@ type AuthContextValue = {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
 };
 
 // ─── Admin Seed ──────────────────────────────────────────────────────────────
@@ -211,6 +214,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         created_at: now,
       });
 
+      // Send welcome / verification email via Firebase
+      try {
+        await sendEmailVerification(cred.user);
+      } catch (_) {
+        // Non-fatal — account is still created
+      }
+
       setUser(profileData);
       return { error: null };
     } catch (err: any) {
@@ -236,8 +246,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return { error: null };
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found') {
+        return { error: 'No account found with this email address.' };
+      } else if (err.code === 'auth/invalid-email') {
+        return { error: 'Please enter a valid email address.' };
+      }
+      return { error: 'Failed to send reset email. Please try again.' };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile: user, loading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile: user, loading, signIn, signUp, signOut, refreshProfile, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

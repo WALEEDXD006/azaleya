@@ -5,15 +5,15 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from '@/context/RouterContext';
 import type { Product, Category, Order, OrderItem } from '@/lib/types';
 import { formatPrice } from '@/lib/format';
-import { Package, ShoppingBag, LayoutGrid, Plus, Pencil, Trash2, X, TrendingUp, Truck } from 'lucide-react';
+import { ShoppingBag, LayoutGrid, TrendingUp, Truck, Tag, Users } from 'lucide-react';
 import { AdminProducts } from '@/components/admin/AdminProducts';
 import { AdminOrders } from '@/components/admin/AdminOrders';
 import { AdminOverview } from '@/components/admin/AdminOverview';
 import { AdminShipping } from '@/components/admin/AdminShipping';
 import { AdminCategories } from '@/components/admin/AdminCategories';
-import { Tag } from 'lucide-react';
+import { AdminUsers } from '@/components/admin/AdminUsers';
 
-type Tab = 'overview' | 'categories' | 'products' | 'orders' | 'shipping';
+type Tab = 'overview' | 'categories' | 'products' | 'orders' | 'shipping' | 'users';
 
 export function AdminPage() {
   const { user, profile, loading } = useAuth();
@@ -78,6 +78,7 @@ export function AdminPage() {
     { id: 'products', label: 'Products', icon: <LayoutGrid size={16} /> },
     { id: 'orders', label: 'Orders', icon: <ShoppingBag size={16} /> },
     { id: 'shipping', label: 'Shipping', icon: <Truck size={16} /> },
+    { id: 'users', label: 'Users', icon: <Users size={16} /> },
   ];
 
   return (
@@ -113,6 +114,7 @@ export function AdminPage() {
         {tab === 'products' && <AdminProducts products={products} onChange={loadProducts} />}
         {tab === 'orders' && <AdminOrders orders={orders} onChange={loadOrders} />}
         {tab === 'shipping' && <AdminShipping />}
+        {tab === 'users' && <AdminUsers />}
       </div>
     </div>
   );
