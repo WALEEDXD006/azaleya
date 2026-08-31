@@ -90,7 +90,7 @@ export function CheckoutPage() {
         </div>
         <h1 className="mt-6 font-serif text-3xl font-semibold text-cream-800">Order placed!</h1>
         <p className="mt-2 text-sm text-cream-600">
-          Thank you for your order. A confirmation has been sent to your email.
+          Thank you for your order. We will contact you soon on your contact number.
         </p>
         <p className="mt-1 text-xs text-cream-500">Order reference: #{done.slice(0, 8)}</p>
         <div className="mt-8 flex justify-center gap-3">
@@ -144,7 +144,7 @@ export function CheckoutPage() {
         user_id: user?.id ?? null,
         customer_name: form.name,
         customer_email: form.email,
-        customer_phone: form.phone,
+        customer_phone: `+92${form.phone.replace(/^0/, '')}`,
         shipping_address: form.address,
         city: form.city,
         postal_code: form.postal,

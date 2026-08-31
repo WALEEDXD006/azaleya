@@ -79,10 +79,13 @@ export function SignUpPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={`input-field ${errors.password ? 'border-red-400' : ''}`}
-              placeholder="At least 6 characters"
+              placeholder="Min 8 chars, uppercase, number & symbol"
               autoComplete="new-password"
             />
-            {errors.password && <span className="mt-1 block text-xs text-red-500">{errors.password}</span>}
+            {errors.password
+              ? <span className="mt-1 block text-xs text-red-500">{errors.password}</span>
+              : <span className="mt-1 block text-xs text-cream-400">Must be 8+ characters with uppercase, lowercase, number &amp; special character (e.g. @, #, !)</span>
+            }
           </label>
 
           {errors.form && (
