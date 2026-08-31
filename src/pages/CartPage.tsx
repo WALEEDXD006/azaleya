@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from '@/context/RouterContext';
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import type { ShippingRate } from '@/lib/types';
 import { formatPrice } from '@/lib/format';
@@ -9,6 +10,7 @@ import { Trash2, Minus, Plus, ShoppingBag } from 'lucide-react';
 export function CartPage() {
   const { items, removeItem, updateQuantity, subtotal, totalItems } = useCart();
   const { navigate } = useRouter();
+  const { user } = useAuth();
   const [defaultRate, setDefaultRate] = useState(300);
 
   useEffect(() => {
@@ -130,8 +132,11 @@ export function CartPage() {
                 </div>
               </div>
             </dl>
-            <button onClick={() => navigate('/checkout')} className="btn-primary mt-6 w-full">
-              Proceed to checkout
+            <button
+              onClick={() => navigate(user ? '/checkout' : '/signin')}
+              className="btn-primary mt-6 w-full"
+            >
+              {user ? 'Proceed to checkout' : 'Sign in to checkout'}
             </button>
             <button onClick={() => navigate('/shop')} className="btn-ghost mt-2 w-full">
               Continue shopping

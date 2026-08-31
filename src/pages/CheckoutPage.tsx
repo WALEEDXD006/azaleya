@@ -54,6 +54,23 @@ export function CheckoutPage() {
   const shipping = getShippingRate();
   const total = subtotal + shipping;
 
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-24 text-center">
+        <p className="text-cream-600 text-lg font-medium">You need to be signed in to place an order.</p>
+        <p className="mt-2 text-sm text-cream-500">Please sign in or create an account to continue.</p>
+        <div className="mt-6 flex justify-center gap-3">
+          <button onClick={() => navigate('/signin')} className="btn-primary">
+            Sign in
+          </button>
+          <button onClick={() => navigate('/signup')} className="btn-outline">
+            Create account
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (items.length === 0 && !done) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-24 text-center">
